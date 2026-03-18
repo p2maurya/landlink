@@ -47,7 +47,7 @@ landlink/
 
 4. Import database in phpMyAdmin
 
-5. Run in browser:http://localhost:8080/landlink1.0
+5. Run in browser:http://localhost:8081/landlink1.0
 6. ## 📸 Screenshots
 7. <img width="1358" height="631" alt="image" src="https://github.com/user-attachments/assets/ceeffdff-1e56-4a81-851c-ddfe42f6160a" />
 <img width="1358" height="631" alt="image" src="https://github.com/user-attachments/assets/913242bd-3d2d-4b26-8996-62918fbd679d" />
