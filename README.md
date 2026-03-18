@@ -46,7 +46,7 @@ landlink/
 3. Start Apache & MySQL
 
 4. Import database in phpMyAdmin
-5. live link of website landlink.gt.tc
+5. live link of website:https://landlink.gt.tc/
 
 6. Run in browser:http://localhost:8081/landlink1.0
 7. ## 📸 Screenshots
