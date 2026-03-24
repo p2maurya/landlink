@@ -1,55 +1,65 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+session_start();
 include("db.php");
 
-if(isset($_POST['submit'])) {
+if(!isset($_SESSION['user_id'])){
+    header("Location: login.php");
+    exit;
+}
 
-    // Collect form data safely
+if(isset($_POST['submit'])){
+
+    $user_id = $_SESSION['user_id'];
+
     $title = mysqli_real_escape_string($conn, $_POST['title']);
     $city = mysqli_real_escape_string($conn, $_POST['city']);
     $type = mysqli_real_escape_string($conn, $_POST['type']);
     $price = intval($_POST['price']);
     $desc = mysqli_real_escape_string($conn, $_POST['description']);
+    $contact_no = mysqli_real_escape_string($conn, $_POST['contact_no']);
 
     $uploads_dir = "uploads/";
     if(!is_dir($uploads_dir)){
         mkdir($uploads_dir, 0777, true);
     }
 
-    // Handle image upload (optional)
-    $image_name = NULL;
+    $file_name = "";
+
+    /* IMAGE UPLOAD */
     if(isset($_FILES['image']) && $_FILES['image']['error'] === 0){
-        $image_name = time() . '_img_' . basename($_FILES['image']['name']);
-        $tmp_img = $_FILES['image']['tmp_name'];
-        move_uploaded_file($tmp_img, $uploads_dir . $image_name);
+        $file_name = time() . "_img_" . basename($_FILES['image']['name']);
+        move_uploaded_file($_FILES['image']['tmp_name'], $uploads_dir . $file_name);
     }
 
-    // Handle video upload (optional)
-    $video_name = NULL;
+    /* VIDEO UPLOAD */
     if(isset($_FILES['video']) && $_FILES['video']['error'] === 0){
-        $allowed_types = ['video/mp4', 'video/webm', 'video/ogg'];
+        $allowed_types = ['video/mp4','video/webm','video/ogg'];
+
         if(!in_array($_FILES['video']['type'], $allowed_types)){
-            echo "Invalid video format! Only MP4, WebM, OGG allowed.";
-            exit;
+            echo "<script>alert('Only MP4/WebM/OGG allowed');</script>";
+        } else {
+            $file_name = time() . "_vid_" . basename($_FILES['video']['name']);
+            move_uploaded_file($_FILES['video']['tmp_name'], $uploads_dir . $file_name);
         }
-        $video_name = time() . '_vid_' . basename($_FILES['video']['name']);
-        $tmp_vid = $_FILES['video']['tmp_name'];
-        move_uploaded_file($tmp_vid, $uploads_dir . $video_name);
     }
 
-    // At least one file required
-    if(!$image_name && !$video_name){
-        echo "Please upload at least a photo or video!";
-        exit;
-    }
-
-    // Insert into database
-    $query = "INSERT INTO rooms (title, city, room_type, price, description, image)
-              VALUES ('$title','$city','$type','$price','$desc','" . ($video_name ?? $image_name) . "')";
-
-    if(mysqli_query($conn, $query)){
-        echo "<script>alert('Room posted successfully!'); window.location='post-room.php';</script>";
+    if($file_name == ""){
+        echo "<script>alert('Please upload image or video');</script>";
     } else {
-        echo "Error: " . mysqli_error($conn);
+
+        $query = "INSERT INTO rooms 
+        (title, city, room_type, price, description, contact_no, image, user_id)
+        VALUES 
+        ('$title','$city','$type','$price','$desc','$contact_no','$file_name','$user_id')";
+
+        if(mysqli_query($conn, $query)){
+            echo "<script>alert('🚀 Room Posted Successfully!'); window.location='dashboard.php';</script>";
+        } else {
+            echo "Error: " . mysqli_error($conn);
+        }
     }
 }
 ?>
@@ -58,124 +68,138 @@ if(isset($_POST['submit'])) {
 <html>
 <head>
 <title>Post Room</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
 <style>
-body {
-    font-family: Arial;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+
+body{
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background: linear-gradient(135deg,#667eea,#764ba2);
 }
 
-.container {
+/* Container */
+.container{
+    width:420px;
     background: rgba(255,255,255,0.15);
-    backdrop-filter: blur(15px);
-    padding: 30px;
-    border-radius: 20px;
-    width: 400px;
-    color: white;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    backdrop-filter: blur(20px);
+    padding:30px;
+    border-radius:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.3);
+    color:white;
 }
 
-h2 {
-    text-align: center;
-    margin-bottom: 20px;
+/* Title */
+h2{
+    text-align:center;
+    margin-bottom:20px;
+    font-weight:600;
 }
 
-input, select, textarea {
-    width: 100%;
-    padding: 10px;
-    margin: 8px 0;
-    border-radius: 10px;
-    border: none;
-    outline: none;
+/* Inputs */
+input,select,textarea{
+    width:100%;
+    padding:12px;
+    margin:8px 0;
+    border:none;
+    border-radius:10px;
+    outline:none;
+    font-size:0.95rem;
 }
 
-button {
-    width: 100%;
-    padding: 12px;
-    background: #ff7a18;
-    border: none;
-    border-radius: 10px;
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-    transition: 0.3s;
+/* Button */
+button{
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    background:#ff7a18;
+    border:none;
+    border-radius:10px;
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+    transition:0.3s;
+}
+button:hover{
+    background:#ff5200;
 }
 
-button:hover {
-    background: #ff5200;
+/* Preview */
+.preview{
+    margin-top:10px;
+}
+.preview img, .preview video{
+    width:100%;
+    border-radius:10px;
+    margin-top:10px;
 }
 
-img, video {
-    max-width: 100%;
-    margin-top: 10px;
-    border-radius: 10px;
+/* Small text */
+small{
+    opacity:0.8;
 }
 </style>
 </head>
+
 <body>
 
 <div class="container">
-    <h2>🏠 Post Your Room</h2>
+<h2>🏠 Post Your Room</h2>
 
-    <form method="POST" enctype="multipart/form-data">
+<form method="POST" enctype="multipart/form-data">
 
-        <input type="text" name="title" placeholder="Room Title" required>
-        <input type="text" name="city" placeholder="City" required>
+<input type="text" name="title" placeholder="Room Title" required>
+<input type="text" name="city" placeholder="City" required>
 
-        <select name="type" required>
-            <option value="">Select Room Type</option>
-            <option>Single</option>
-            <option>Double</option>
-            <option>PG</option>
-        </select>
+<select name="type" required>
+<option value="">Select Room Type</option>
+<option>Single</option>
+<option>Double</option>
+<option>PG</option>
+</select>
 
-        <input type="number" name="price" placeholder="Price" required>
-        <textarea name="description" placeholder="Description" required></textarea>
+<input type="number" name="price" placeholder="Price" required>
+<textarea name="description" placeholder="Description" required></textarea>
 
-        <input type="file" name="image" id="imageInput" accept="image/*">
-        <img id="imgPreview" style="display:none;" />
+<input type="text" name="contact_no" placeholder="Contact Number" required>
 
-        <input type="file" name="video" id="videoInput" accept="video/*">
-        <video id="videoPreview" controls style="display:none;"></video>
+<label>📷 Upload Image</label>
+<input type="file" name="image" id="imgInput" accept="image/*">
 
-        <button name="submit">🚀 Post Room</button>
+<label>🎥 Upload Video</label>
+<input type="file" name="video" id="vidInput" accept="video/*">
 
-    </form>
+<div class="preview">
+<img id="imgPreview" style="display:none;">
+<video id="vidPreview" controls style="display:none;"></video>
+</div>
+
+<button name="submit">🚀 Post Room</button>
+
+</form>
 </div>
 
 <script>
 // Image preview
-const imageInput = document.getElementById('imageInput');
-const imgPreview = document.getElementById('imgPreview');
-imageInput.addEventListener('change', function(){
-    const file = this.files[0];
+imgInput.onchange = e=>{
+    const file = e.target.files[0];
     if(file){
-        const reader = new FileReader();
-        reader.onload = function(e){
-            imgPreview.src = e.target.result;
-            imgPreview.style.display = 'block';
-        }
-        reader.readAsDataURL(file);
-    } else {
-        imgPreview.style.display = 'none';
+        imgPreview.src = URL.createObjectURL(file);
+        imgPreview.style.display="block";
     }
-});
+}
 
 // Video preview
-const videoInput = document.getElementById('videoInput');
-const videoPreview = document.getElementById('videoPreview');
-videoInput.addEventListener('change', function(){
-    const file = this.files[0];
+vidInput.onchange = e=>{
+    const file = e.target.files[0];
     if(file){
-        videoPreview.src = URL.createObjectURL(file);
-        videoPreview.style.display = 'block';
-    } else {
-        videoPreview.style.display = 'none';
+        vidPreview.src = URL.createObjectURL(file);
+        vidPreview.style.display="block";
     }
-});
+}
 </script>
 
 </body>
