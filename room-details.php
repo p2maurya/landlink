@@ -73,20 +73,45 @@ if(isset($_POST['book'])){
     header("Location: room-details.php?id=$id&booked=1"); exit;
 }
 
-// Files
-$files = !empty($row['image']) ? array_values(array_filter(array_map('trim', explode(",", $row['image'])))) : [];
+// FILES: image aur video alag columns hain — dono merge karo
+$files = [];
+if(!empty($row['image'])){
+    $img_files = array_values(array_filter(array_map('trim', explode(",", $row['image']))));
+    $files = array_merge($files, $img_files);
+}
+if(!empty($row['video'])){
+    $vid_files = array_values(array_filter(array_map('trim', explode(",", $row['video']))));
+    $files = array_merge($files, $vid_files);
+}
 $fcount = count($files);
 
 // WhatsApp number clean
 $wa_number = preg_replace('/[^0-9]/', '', $row['contact_no']);
 if(strlen($wa_number)==10) $wa_number = '91'.$wa_number;
+
+// BASE URL absolute — subfolder issue fix
+$base_url = 'https://landlink.gt.tc/uploads/';
+
+$media_json = [];
+foreach($files as $file){
+    $file = trim($file);
+    if(!$file) continue;
+    // Already full URL? use as-is. Otherwise build absolute URL.
+    if(strpos($file,'http') === 0){
+        $url = $file;
+    } else {
+        $url = $base_url . basename($file);
+    }
+    $ext = strtolower(pathinfo($url, PATHINFO_EXTENSION));
+    $media_json[] = ['path'=>$url, 'type'=>in_array($ext,['mp4','webm','ogg','mov'])?'video':'image'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?php echo htmlspecialchars($row['title']); ?> — RoomEase</title>
+<title><?php echo htmlspecialchars($row['title']); ?> — P2MDestiny</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Epilogue:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
@@ -129,12 +154,22 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .orb-b{width:500px;height:500px;background:rgba(245,106,143,0.06);bottom:-200px;left:-200px;}
 
 /* ── NAV ── */
-nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:14px 48px;background:rgba(7,7,15,.9);backdrop-filter:blur(28px);border-bottom:1px solid var(--border);}
-.nav-logo{font-family:var(--ff-serif);font-size:1.4rem;background:linear-gradient(120deg,var(--accent-l),var(--mint));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.nav-links{display:flex;align-items:center;gap:4px;}
-.nav-links a{padding:7px 16px;border-radius:100px;color:var(--text-2);text-decoration:none;font-size:.85rem;font-weight:500;border:1px solid transparent;transition:all .25s var(--ease);}
-.nav-links a:hover{color:var(--text);background:rgba(255,255,255,.05);border-color:var(--border-l);}
+nav{position:sticky;top:12px;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:10px 16px 10px 20px;margin:12px 24px 0;border-radius:100px;background:rgba(13,13,26,.85);backdrop-filter:blur(24px);border:1px solid var(--border-l);box-shadow:0 8px 32px rgba(0,0,0,.4);}
+.nav-logo{font-family:var(--ff-serif);font-size:1.2rem;background:linear-gradient(120deg,var(--accent-l),var(--mint));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-decoration:none;}
+.nav-links{display:flex;align-items:center;gap:2px;}
+.nav-links a{padding:7px 15px;border-radius:100px;color:var(--text-2);text-decoration:none;font-size:.83rem;font-weight:500;border:1px solid transparent;transition:all .2s var(--ease);}
+.nav-links a:hover{color:var(--text);background:rgba(255,255,255,.06);border-color:var(--border-l);}
 .nav-links a.back{color:var(--accent-l);background:rgba(124,106,245,.1);border-color:rgba(124,106,245,.25);}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:6px;border-radius:10px;border:1px solid var(--border-l);background:rgba(255,255,255,.04);}
+.hamburger span{display:block;width:20px;height:2px;background:var(--text-2);border-radius:2px;transition:all .3s var(--ease);}
+.hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+.hamburger.open span:nth-child(2){opacity:0;}
+.hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+.mobile-menu{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:999;background:rgba(7,7,15,.97);backdrop-filter:blur(24px);flex-direction:column;align-items:center;justify-content:center;gap:16px;opacity:0;pointer-events:none;transition:all .3s;}
+.mobile-menu.open{display:flex;opacity:1;pointer-events:all;}
+.mobile-menu a{font-family:var(--ff-serif);font-size:2rem;color:var(--text);text-decoration:none;padding:8px 28px;border-radius:14px;transition:all .2s;}
+.mobile-menu a:hover{color:var(--accent-l);}
+.mobile-menu-close{position:absolute;top:24px;right:24px;font-size:1.5rem;cursor:pointer;color:var(--text-2);background:rgba(255,255,255,.06);border:1px solid var(--border-l);border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center;}
 
 /* ── LAYOUT ── */
 .page{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:40px 24px 80px;display:grid;grid-template-columns:1fr 360px;gap:32px;}
@@ -144,8 +179,24 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 /* MAIN SWIPER */
 .main-swiper-wrap{border-radius:20px;overflow:hidden;background:var(--surface);border:1px solid var(--border);margin-bottom:16px;position:relative;}
 .main-swiper{width:100%;height:420px;}
-.main-swiper img,.main-swiper video{width:100%;height:420px;object-fit:cover;display:block;}
-.main-swiper video{cursor:pointer;}
+/* FIX: explicit height on every child level so video gets a real box */
+.main-swiper .swiper-wrapper{height:420px;}
+.main-swiper .swiper-slide{width:100%;height:420px !important;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#0a0a0a;position:relative;}
+.main-swiper .swiper-slide img{width:100%;height:100%;object-fit:cover;display:block;flex-shrink:0;}
+.main-swiper .swiper-slide video{width:100%;height:100%;object-fit:contain;background:#000;display:block;cursor:pointer;flex-shrink:0;}
+
+/* FIX: play overlay inside slide, positioned absolutely */
+.play-overlay{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:54px;height:54px;border-radius:50%;
+  background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;pointer-events:none;z-index:3;
+  border:1px solid rgba(255,255,255,0.2);
+  transition:opacity .2s;
+}
+.play-overlay.hidden{display:none;}
+
 .swiper-pagination-bullet{background:rgba(255,255,255,.4);opacity:1;width:8px;height:8px;}
 .swiper-pagination-bullet-active{background:#fff;width:20px;border-radius:4px;}
 .swiper-button-next,.swiper-button-prev{color:#fff;background:rgba(0,0,0,.5);width:36px;height:36px;border-radius:50%;backdrop-filter:blur(8px);}
@@ -255,7 +306,13 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 
 ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border-l);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:var(--accent);}
 
-@media(max-width:600px){nav{padding:12px 16px;}.nav-links{display:none;}.page{padding:20px 14px 60px;}.main-swiper,.main-swiper img,.main-swiper video{height:260px;}}
+@media(max-width:600px){nav{margin:10px 16px 0;border-radius:16px;padding:8px 12px 8px 16px;}.nav-links{display:none;}.hamburger{display:flex;}.page{padding:20px 14px 60px;}
+  .main-swiper,
+  .main-swiper .swiper-wrapper,
+  .main-swiper .swiper-slide,
+  .main-swiper .swiper-slide img,
+  .main-swiper .swiper-slide video{height:260px !important;}
+}
 </style>
 </head>
 <body>
@@ -263,13 +320,23 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 <div class="toast-wrap" id="toastWrap"></div>
 <div class="orb orb-a"></div><div class="orb orb-b"></div>
 
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mobile-menu-close" onclick="toggleMobileMenu()">✕</div>
+  <a href="findroom.php" onclick="toggleMobileMenu()">← Listings</a>
+  <a href="dashboard.php" onclick="toggleMobileMenu()">Dashboard</a>
+  <a href="post-room.php" onclick="toggleMobileMenu()">Post Room</a>
+</div>
+
 <!-- ── NAV ── -->
 <nav>
-  <div class="nav-logo">🏠 RoomEase</div>
+  <a href="index.php" class="nav-logo">🏠 P2MDestiny</a>
   <div class="nav-links">
     <a href="findroom.php" class="back">← Back to Listings</a>
     <a href="dashboard.php">Dashboard</a>
     <a href="post-room.php">Post Room</a>
+  </div>
+  <div class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
+    <span></span><span></span><span></span>
   </div>
 </nav>
 
@@ -287,19 +354,48 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 
       <div class="swiper main-swiper" id="mainSwiper">
         <div class="swiper-wrapper">
-          <?php foreach($files as $file):
+
+          <?php
+          /* ── FIX 2: foreach with $i key ── */
+          foreach($files as $i => $file):
+            $file = trim($file);
             if(!$file) continue;
-            $path = (strpos($file,'uploads/')===false) ? "uploads/".basename($file) : $file;
-            $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-            ?>
-            <div class="swiper-slide">
-              <?php if(in_array($ext,['mp4','webm','ogg'])): ?>
-                <video controls playsinline><source src="<?php echo htmlspecialchars($path); ?>"></video>
-              <?php else: ?>
-                <img src="<?php echo htmlspecialchars($path); ?>" alt="Room">
-              <?php endif; ?>
-            </div>
+            $base_url2 = 'https://landlink.gt.tc/';
+            // DB mein 'uploads/filename' stored hai — basename() mat lagao
+            if(strpos($file,'http')===0){
+                $url = $file;
+            } elseif(strpos($file,'uploads/')===0){
+                $url = $base_url2.$file; // https://landlink.gt.tc/uploads/filename
+            } else {
+                $url = $base_url2.'uploads/'.basename($file);
+            }
+            $ext = strtolower(pathinfo($url, PATHINFO_EXTENSION));
+            $is_video = in_array($ext, ['mp4','webm','ogg','mov']);
+            $mime_map = ['mp4'=>'video/mp4','webm'=>'video/webm','ogg'=>'video/ogg','mov'=>'video/mp4'];
+            $mime = $mime_map[$ext] ?? 'video/mp4';
+          ?>
+          <div class="swiper-slide">
+
+            <?php if($is_video): ?>
+              <video
+                id="slide-video-<?php echo $i; ?>"
+                playsinline
+                preload="none"
+                onclick="toggleVideo(this)"
+                style="width:100%;height:100%;object-fit:contain;background:#000;display:block;cursor:pointer;">
+                <source src="<?php echo htmlspecialchars($url); ?>" type="<?php echo $mime; ?>">
+              </video>
+              <div class="play-overlay" id="overlay-<?php echo $i; ?>">▶️</div>
+
+            <?php else: ?>
+              <img src="<?php echo htmlspecialchars($url); ?>"
+                   alt="Room photo <?php echo $i+1; ?>"
+                   style="width:100%;height:100%;object-fit:cover;display:block;">
+            <?php endif; ?>
+
+          </div>
           <?php endforeach; ?>
+
         </div>
         <?php if($fcount > 1): ?>
         <div class="swiper-pagination"></div>
@@ -312,18 +408,31 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
     <!-- Thumbnail Strip -->
     <?php if($fcount > 1): ?>
     <div class="thumbs-strip" id="thumbsStrip">
-      <?php foreach($files as $i => $file):
+      <?php
+      /* ── FIX 2: foreach with $i key in thumbs too ── */
+      foreach($files as $i => $file):
+        $file = trim($file);
         if(!$file) continue;
-        $path = (strpos($file,'uploads/')===false) ? "uploads/".basename($file) : $file;
-        $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $base_url3 = 'https://landlink.gt.tc/';
+        if(strpos($file,'http')===0){
+            $url = $file;
+        } elseif(strpos($file,'uploads/')===0){
+            $url = $base_url3.$file;
+        } else {
+            $url = $base_url3.'uploads/'.basename($file);
+        }
+        $ext = strtolower(pathinfo($url, PATHINFO_EXTENSION));
+        $is_video = in_array($ext, ['mp4','webm','ogg','mov']);
         ?>
-        <div class="thumb <?php echo $i==0?'active':''; ?>" data-index="<?php echo $i; ?>">
-          <?php if(in_array($ext,['mp4','webm','ogg'])): ?>
-            <video muted><source src="<?php echo htmlspecialchars($path); ?>"></video>
-          <?php else: ?>
-            <img src="<?php echo htmlspecialchars($path); ?>">
-          <?php endif; ?>
-        </div>
+      <div class="thumb <?php echo $i===0 ? 'active' : ''; ?>" data-index="<?php echo $i; ?>">
+        <?php if($is_video): ?>
+          <video muted playsinline preload="metadata"
+            src="<?php echo htmlspecialchars($url); ?>">
+          </video>
+        <?php else: ?>
+          <img src="<?php echo htmlspecialchars($url); ?>" alt="">
+        <?php endif; ?>
+      </div>
       <?php endforeach; ?>
     </div>
     <?php endif; ?>
@@ -479,54 +588,147 @@ nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-co
 </div>
 
 <script>
-// ── MAIN SWIPER ──
+// ─────────────────────────────────────────────
+// FIX 1 & 4: Swiper init + video pause on slide change
+// loop:false  →  videos ke saath reliable hai
+// slideTo()   →  loop:false ke saath use karo (slideToLoop nahi)
+// ─────────────────────────────────────────────
 const mainSwiper = new Swiper('#mainSwiper', {
-  loop: <?php echo $fcount>1?'true':'false'; ?>,
+  loop: false,
+  speed: 400,
   pagination: { el: '.swiper-pagination', clickable: true },
   navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
   on: {
-    slideChange(s) {
-      updateThumbs(s.realIndex);
-      document.querySelectorAll('.main-swiper video').forEach(v => v.pause());
+    slideChange(swiper) {
+      updateThumbs(swiper.activeIndex);
+      pauseAllVideos();         // slide change hote hi sab videos pause
+      loadVideoOnSlide(swiper.activeIndex); // nayi slide ka video load karo
     }
   }
 });
 
-// ── THUMBS ──
-document.querySelectorAll('.thumb').forEach(t => {
-  t.addEventListener('click', () => {
-    const idx = +t.dataset.index;
-    mainSwiper.slideToLoop(idx);
+// ─────────────────────────────────────────────
+// FIX 4: Play/Pause overlay — sibling nahi, ID se dhundo
+// toggleVideo() video click pe call hota hai
+// ─────────────────────────────────────────────
+function toggleVideo(videoEl) {
+  const overlayId = videoEl.id.replace('slide-video-', 'overlay-');
+  const overlay   = document.getElementById(overlayId);
+
+  // Agar load nahi hua to pehle load karo
+  if (!videoEl.getAttribute('data-loaded')) {
+    videoEl.load();
+    videoEl.setAttribute('data-loaded', '1');
+  }
+
+  if (videoEl.paused) {
+    videoEl.play().then(() => {
+      if (overlay) overlay.classList.add('hidden');
+    }).catch(() => {
+      // autoplay blocked — show overlay
+      if (overlay) overlay.classList.remove('hidden');
+    });
+  } else {
+    videoEl.pause();
+    if (overlay) overlay.classList.remove('hidden');
+  }
+}
+
+function pauseAllVideos() {
+  document.querySelectorAll('#mainSwiper video').forEach(v => {
+    if (!v.paused) {
+      v.pause();
+    }
+    v.currentTime = 0;
+    // overlay wapas dikhao
+    const overlayId = v.id.replace('slide-video-', 'overlay-');
+    const overlay   = document.getElementById(overlayId);
+    if (overlay) overlay.classList.remove('hidden');
+  });
+}
+
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobileMenu');
+  const ham  = document.getElementById('hamburger');
+  menu.classList.toggle('open');
+  ham.classList.toggle('open');
+  document.body.style.overflow = menu.classList.contains('open') ? 'hidden' : '';
+}
+
+// Video loading fix: jab slide active ho tab hi load karo
+function loadVideoOnSlide(index) {
+  const slides = document.querySelectorAll('#mainSwiper .swiper-slide');
+  if (slides[index]) {
+    const video = slides[index].querySelector('video');
+    if (video) {
+      const source = video.querySelector('source');
+      if (source && !video.getAttribute('data-loaded')) {
+        video.load();
+        video.setAttribute('data-loaded', '1');
+      }
+    }
+  }
+}
+
+// Pehli slide pe video load karo on page load
+document.addEventListener('DOMContentLoaded', () => loadVideoOnSlide(0));
+
+// video ended → overlay wapas dikhao
+document.querySelectorAll('#mainSwiper video').forEach(v => {
+  v.addEventListener('ended', () => {
+    const overlayId = v.id.replace('slide-video-', 'overlay-');
+    const overlay   = document.getElementById(overlayId);
+    if (overlay) overlay.classList.remove('hidden');
+  });
+});
+
+// ─────────────────────────────────────────────
+// THUMBS: slideTo() use karo (loop:false ke saath)
+// ─────────────────────────────────────────────
+document.querySelectorAll('.thumb').forEach(thumb => {
+  thumb.addEventListener('click', () => {
+    const idx = parseInt(thumb.dataset.index, 10);
+    pauseAllVideos();
+    mainSwiper.slideTo(idx);   // slideToLoop nahi — loop:false hai
     updateThumbs(idx);
   });
 });
 
-function updateThumbs(idx) {
-  document.querySelectorAll('.thumb').forEach((t,i) => {
-    t.classList.toggle('active', i === idx);
+function updateThumbs(activeIdx) {
+  document.querySelectorAll('.thumb').forEach((t, i) => {
+    t.classList.toggle('active', i === activeIdx);
   });
 }
 
-// ── STAR RATING ──
+// ─────────────────────────────────────────────
+// STAR RATING
+// ─────────────────────────────────────────────
 function pickRating(val) {
   document.getElementById('ratingVal').value = val;
-  document.querySelectorAll('.star-i').forEach((s,i) => s.classList.toggle('active', i < val));
+  document.querySelectorAll('.star-i').forEach((s, i) => {
+    s.classList.toggle('active', i < val);
+  });
   const btn = document.getElementById('rateBtn');
-  if(btn) btn.classList.add('show');
+  if (btn) btn.classList.add('show');
 }
 
-// ── TOAST ──
+// ─────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────
 function showToast(msg, type='success') {
   const w = document.getElementById('toastWrap');
   const t = document.createElement('div');
   t.className = 'toast ' + type;
-  t.innerHTML = (type==='success'?'✅':'⚠️') + ' ' + msg;
+  t.innerHTML = (type === 'success' ? '✅' : '⚠️') + ' ' + msg;
   w.appendChild(t);
-  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 400); }, 3500);
+  setTimeout(() => {
+    t.classList.add('out');
+    setTimeout(() => t.remove(), 400);
+  }, 3500);
 }
 
-<?php if(isset($_GET['booked'])): ?>  showToast('📅 Room booked successfully!', 'success'); <?php endif; ?>
-<?php if(isset($_GET['rated'])):  ?>  showToast('⭐ Rating submitted, thanks!', 'success'); <?php endif; ?>
+<?php if(isset($_GET['booked'])): ?> showToast('📅 Room booked successfully!', 'success'); <?php endif; ?>
+<?php if(isset($_GET['rated'])):  ?> showToast('⭐ Rating submitted, thanks!',  'success'); <?php endif; ?>
 </script>
 </body>
 </html>

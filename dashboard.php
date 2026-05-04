@@ -485,7 +485,7 @@ body::after {
 
 <!-- ─── NAVBAR ─── -->
 <nav class="navbar">
-  <div class="nav-logo">🏠 RoomEase</div>
+  <div class="nav-logo">🏠 p2mdestiny</div>
   <div class="nav-links">
     <a href="index.php">Home</a>
     <a href="findroom.php">Find Room</a>
@@ -493,8 +493,12 @@ body::after {
     <a href="logout.php" class="danger">Logout</a>
   </div>
   <div class="nav-user">
-    <div class="nav-avatar"><?php echo strtoupper(substr($_SESSION['username'],0,1)); ?></div>
-    <span class="nav-name"><?php echo htmlspecialchars($_SESSION['username']); ?></span>
+    <div class="nav-avatar">
+      <a href="profile.php"><?php echo strtoupper(substr($_SESSION['username'],0,1)); ?></a>
+    </div>
+    <span class="nav-name">
+      <a href="profile.php"><?php echo htmlspecialchars($_SESSION['username']); ?></a>
+    </span>
   </div>
 </nav>
 
@@ -738,14 +742,17 @@ function switchTab(tab) {
 // ── SWIPER INIT ──
 function initSwipers() {
   document.querySelectorAll('.card-swiper:not(.swiper-initialized)').forEach(el => {
+    const hasVideo = el.querySelector('video') !== null;
+    const slideCount = el.querySelectorAll('.swiper-slide').length;
+
     new Swiper(el, {
-      loop: el.querySelectorAll('.swiper-slide').length > 1,
-      autoplay: { delay: 3000, disableOnInteraction: false },
-      pagination: el.querySelector('.swiper-pagination') ? { el: el.querySelector('.swiper-pagination'), clickable: true } : false,
+      loop: hasVideo ? false : slideCount > 1,  // loop OFF if any video exists
+      autoplay: slideCount > 1 ? { delay: 3000, disableOnInteraction: false } : false,
+      pagination: el.querySelector('.swiper-pagination')
+        ? { el: el.querySelector('.swiper-pagination'), clickable: true } : false,
       on: {
         slideChange() {
-          // play video in current slide
-          el.querySelectorAll('video').forEach(v => v.pause());
+          el.querySelectorAll('video').forEach(v => { v.pause(); v.currentTime = 0; });
           const active = el.querySelector('.swiper-slide-active video');
           if(active) active.play();
         }

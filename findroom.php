@@ -120,32 +120,48 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 
 /* ── NAV ── */
 nav{
-  position:sticky;top:0;z-index:200;
+  position:sticky;top:12px;z-index:200;
   display:flex;align-items:center;justify-content:space-between;
-  padding:14px 48px;
-  background:rgba(7,7,15,0.88);
-  backdrop-filter:blur(28px);
-  border-bottom:1px solid var(--border);
+  padding:10px 16px 10px 20px;
+  margin:12px 24px 0;
+  border-radius:100px;
+  background:rgba(13,13,26,.85);
+  backdrop-filter:blur(24px);
+  border:1px solid var(--border-l);
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
 }
 .nav-logo{
-  font-family:var(--ff-serif);
-  font-size:1.5rem;
-  background:linear-gradient(120deg, var(--accent-l), var(--mint));
+  display:flex;align-items:center;gap:10px;text-decoration:none;
+  font-family:var(--ff-serif);font-size:1.2rem;
+  background:linear-gradient(120deg,var(--accent-l),var(--mint));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  letter-spacing:-0.01em;
 }
-.nav-links{display:flex;align-items:center;gap:4px;}
+.nav-links{display:flex;align-items:center;gap:2px;}
 .nav-links a{
-  padding:7px 16px;border-radius:100px;
+  padding:7px 15px;border-radius:100px;
   color:var(--text-2);text-decoration:none;
-  font-size:0.85rem;font-weight:500;
+  font-size:0.83rem;font-weight:500;
   border:1px solid transparent;
-  transition:all .25s var(--ease);
+  transition:all .2s var(--ease);white-space:nowrap;
 }
-.nav-links a:hover{color:var(--text);background:rgba(255,255,255,0.05);border-color:var(--border-l);}
-.nav-links a.active{color:var(--accent-l);background:rgba(124,106,245,0.1);border-color:rgba(124,106,245,0.3);}
-.nav-links a.nav-cta{background:var(--accent);color:white;border-color:var(--accent);}
-.nav-links a.nav-cta:hover{background:#6b59e6;box-shadow:0 0 20px rgba(124,106,245,0.4);}
+.nav-links a:hover{color:var(--text);background:rgba(255,255,255,0.06);border-color:var(--border-l);}
+.nav-links a.active{color:var(--accent-l);background:rgba(124,106,245,0.1);border-color:rgba(124,106,245,0.25);}
+.nav-links a.nav-cta{background:linear-gradient(135deg,var(--accent),#a06cf0);color:white;border-color:transparent;font-weight:700;box-shadow:0 4px 14px rgba(124,106,245,.35);}
+.nav-links a.nav-cta:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(124,106,245,.5);}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:6px;border-radius:10px;border:1px solid var(--border-l);background:rgba(255,255,255,.04);}
+.hamburger span{display:block;width:20px;height:2px;background:var(--text-2);border-radius:2px;transition:all .3s var(--ease);}
+.hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+.hamburger.open span:nth-child(2){opacity:0;}
+.hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+.mobile-menu{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:999;background:rgba(7,7,15,.97);backdrop-filter:blur(24px);flex-direction:column;align-items:center;justify-content:center;gap:16px;opacity:0;pointer-events:none;transition:all .3s var(--ease);}
+.mobile-menu.open{display:flex;opacity:1;pointer-events:all;}
+.mobile-menu a{font-family:var(--ff-serif);font-size:2rem;color:var(--text);text-decoration:none;padding:8px 28px;border-radius:14px;transition:all .2s;font-weight:400;}
+.mobile-menu a:hover{color:var(--accent-l);}
+.mobile-menu-ctas{display:flex;gap:12px;margin-top:16px;}
+.btn-ghost{padding:8px 18px;border-radius:100px;color:var(--text-2);text-decoration:none;font-size:.83rem;font-weight:600;border:1px solid var(--border-l);transition:all .2s;}
+.btn-ghost:hover{color:var(--text);border-color:var(--accent);}
+.btn-primary{padding:9px 20px;border-radius:100px;background:linear-gradient(135deg,var(--accent),#a06cf0);color:white;text-decoration:none;font-size:.83rem;font-weight:700;border:none;box-shadow:0 4px 14px rgba(124,106,245,.35);}
+.mobile-menu-close{position:absolute;top:24px;right:24px;font-size:1.5rem;cursor:pointer;color:var(--text-2);background:rgba(255,255,255,.06);border:1px solid var(--border-l);border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center;}
 
 /* ── HERO ── */
 .hero{
@@ -412,8 +428,9 @@ nav{
 
 /* ── RESPONSIVE ── */
 @media(max-width:700px){
-  nav{padding:12px 20px;}
+  nav{margin:10px 16px 0;border-radius:16px;padding:8px 12px 8px 16px;}
   .nav-links{display:none;}
+  .hamburger{display:flex;}
   .hero{padding:40px 20px 28px;}
   .search-panel{padding:0 16px;}
   .rooms-grid{padding:0 16px 60px;}
@@ -426,15 +443,31 @@ nav{
 <div class="toast-wrap" id="toastWrap"></div>
 <div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div>
 
+<!-- ── MOBILE MENU ── -->
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mobile-menu-close" onclick="toggleMenu()">✕</div>
+  <a href="index.php" onclick="toggleMenu()">Home</a>
+  <a href="findroom.php" onclick="toggleMenu()">Find Room</a>
+  <a href="my-bookings.php" onclick="toggleMenu()">My Bookings</a>
+  <a href="dashboard.php" onclick="toggleMenu()">Dashboard</a>
+  <div class="mobile-menu-ctas">
+    <a href="login.php" class="btn-ghost" onclick="toggleMenu()">Login</a>
+    <a href="post-room.php" class="btn-primary" onclick="toggleMenu()">+ Post Room</a>
+  </div>
+</div>
+
 <!-- ── NAV ── -->
 <nav>
-  <div class="nav-logo">🏠 RoomEase</div>
+  <a href="index.php" class="nav-logo">🏠 P2MDestiny</a>
   <div class="nav-links">
     <a href="index.php">Home</a>
     <a href="findroom.php" class="active">Find Room</a>
     <a href="my-bookings.php">My Bookings</a>
     <a href="dashboard.php">Dashboard</a>
     <a href="post-room.php" class="nav-cta">+ Post Room</a>
+  </div>
+  <div class="hamburger" id="hamburger" onclick="toggleMenu()">
+    <span></span><span></span><span></span>
   </div>
 </nav>
 
@@ -675,11 +708,21 @@ else: ?>
 <script>
 // ── SWIPER INIT ──
 document.querySelectorAll('.card-swiper').forEach(el => {
+  const hasVideo = el.querySelector('video') !== null;
+  const slideCount = el.querySelectorAll('.swiper-slide').length;
+
   new Swiper(el, {
-    loop: el.querySelectorAll('.swiper-slide').length > 1,
-    autoplay: { delay: 2800, disableOnInteraction: false },
+    loop: hasVideo ? false : slideCount > 1,
+    autoplay: slideCount > 1 ? { delay: 2800, disableOnInteraction: false } : false,
     pagination: el.querySelector('.swiper-pagination')
       ? { el: el.querySelector('.swiper-pagination'), clickable: true } : false,
+    on: {
+      slideChange() {
+        el.querySelectorAll('video').forEach(v => { v.pause(); v.currentTime = 0; });
+        const active = el.querySelector('.swiper-slide-active video');
+        if(active) active.play();
+      }
+    }
   });
 });
 
@@ -725,6 +768,15 @@ function showToast(msg, type='success') {
     showToast('⚠️ You already booked this room', 'warning');
   <?php endif; ?>
 <?php endif; ?>
+
+// ── HAMBURGER MENU ──
+function toggleMenu() {
+  const menu = document.getElementById('mobileMenu');
+  const ham  = document.getElementById('hamburger');
+  menu.classList.toggle('open');
+  ham.classList.toggle('open');
+  document.body.style.overflow = menu.classList.contains('open') ? 'hidden' : '';
+}
 </script>
 
 </body>
