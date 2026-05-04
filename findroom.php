@@ -568,8 +568,16 @@ if($total > 0):
       $already_booked = mysqli_num_rows($bq) > 0;
     }
 
-    // Files
-    $files = !empty($row['image']) ? array_values(array_filter(array_map('trim', explode(",", $row['image'])))) : [];
+    // Files — image aur video dono columns merge karo
+    $files = [];
+    if(!empty($row['image'])){
+      $imgs = array_values(array_filter(array_map('trim', explode(",", $row['image']))));
+      $files = array_merge($files, $imgs);
+    }
+    if(!empty($row['video'])){
+      $vids = array_values(array_filter(array_map('trim', explode(",", $row['video']))));
+      $files = array_merge($files, $vids);
+    }
     $fcount = count($files);
 
     $type_key = strtolower($row['room_type'] ?? 'single');
@@ -603,12 +611,23 @@ if($total > 0):
       <div class="swiper-wrapper">
         <?php foreach($files as $file):
           if(!$file) continue;
-          $path = (strpos($file,'uploads/')===false) ? "uploads/".basename($file) : $file;
-          $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+          $file = trim($file);
+          if(strpos($file,'http')===0){
+            $path = $file;
+          } elseif(strpos($file,'uploads/')===0){
+            $path = $file; // relative path — server pe sahi kaam karega
+          } else {
+            $path = 'uploads/'.basename($file);
+          }
+          $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+          $ext = explode('?',$ext)[0];
+          $is_video = in_array($ext,['mp4','webm','ogg','mov']);
           ?>
           <div class="swiper-slide">
-            <?php if(in_array($ext,['mp4','webm','ogg'])): ?>
-              <video muted playsinline loop><source src="<?php echo htmlspecialchars($path); ?>"></video>
+            <?php if($is_video): ?>
+              <video muted playsinline loop preload="none">
+                <source src="<?php echo htmlspecialchars($path); ?>" type="video/mp4">
+              </video>
             <?php else: ?>
               <img src="<?php echo htmlspecialchars($path); ?>" alt="Room" loading="lazy">
             <?php endif; ?>
@@ -708,29 +727,32 @@ else: ?>
 <script>
 // ── SWIPER INIT ──
 document.querySelectorAll('.card-swiper').forEach(el => {
-  const hasVideo = el.querySelector('video') !== null;
+  const hasVideo   = el.querySelector('video') !== null;
   const slideCount = el.querySelectorAll('.swiper-slide').length;
+  if(slideCount < 2) return; // single slide — swiper ki zaroorat nahi
 
   new Swiper(el, {
-    loop: hasVideo ? false : slideCount > 1,
-    autoplay: slideCount > 1 ? { delay: 2800, disableOnInteraction: false } : false,
-    pagination: el.querySelector('.swiper-pagination')
-      ? { el: el.querySelector('.swiper-pagination'), clickable: true } : false,
+    loop: !hasVideo,          // video hai to loop off, warna on
+    speed: 500,
+    autoplay: !hasVideo       // video hai to autoplay off — sirf images pe autoplay
+      ? { delay: 2500, disableOnInteraction: false, pauseOnMouseEnter: true }
+      : false,
+    pagination: { el: el.querySelector('.swiper-pagination'), clickable: true },
     on: {
       slideChange() {
         el.querySelectorAll('video').forEach(v => { v.pause(); v.currentTime = 0; });
         const active = el.querySelector('.swiper-slide-active video');
-        if(active) active.play();
+        if(active) active.play().catch(()=>{});
       }
     }
   });
 });
 
-// video hover play
+// video hover play — sirf video wale cards pe
 document.querySelectorAll('.card-media').forEach(media => {
   media.addEventListener('mouseenter', () => {
     const v = media.querySelector('.swiper-slide-active video');
-    if(v) v.play();
+    if(v) v.play().catch(()=>{});
   });
   media.addEventListener('mouseleave', () => {
     media.querySelectorAll('video').forEach(v => { v.pause(); v.currentTime = 0; });
