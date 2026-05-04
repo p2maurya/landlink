@@ -179,11 +179,29 @@ nav{position:sticky;top:12px;z-index:200;display:flex;align-items:center;justify
 /* MAIN SWIPER */
 .main-swiper-wrap{border-radius:20px;overflow:hidden;background:var(--surface);border:1px solid var(--border);margin-bottom:16px;position:relative;}
 .main-swiper{width:100%;height:420px;}
-/* FIX: explicit height on every child level so video gets a real box */
-.main-swiper .swiper-wrapper{height:420px;}
-.main-swiper .swiper-slide{width:100%;height:420px !important;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#0a0a0a;position:relative;}
-.main-swiper .swiper-slide img{width:100%;height:100%;object-fit:cover;display:block;flex-shrink:0;}
-.main-swiper .swiper-slide video{width:100%;height:100%;object-fit:contain;background:#000;display:block;cursor:pointer;flex-shrink:0;}
+.main-swiper .swiper-wrapper{height:420px !important;align-items:stretch;}
+.main-swiper .swiper-slide{
+  width:100% !important;
+  height:420px !important;
+  min-height:420px !important;
+  overflow:hidden;
+  display:flex !important;
+  align-items:center;
+  justify-content:center;
+  background:#0a0a0a;
+  position:relative;
+  flex-shrink:0;
+}
+.main-swiper .swiper-slide > img,
+.main-swiper .swiper-slide > video{
+  position:absolute !important;
+  top:0 !important;left:0 !important;
+  width:100% !important;
+  height:100% !important;
+  flex-shrink:0;
+}
+.main-swiper .swiper-slide > img{object-fit:cover !important;display:block !important;}
+.main-swiper .swiper-slide > video{object-fit:contain !important;background:#000;cursor:pointer;}
 
 /* FIX: play overlay inside slide, positioned absolutely */
 .play-overlay{
@@ -306,12 +324,14 @@ nav{position:sticky;top:12px;z-index:200;display:flex;align-items:center;justify
 
 ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border-l);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:var(--accent);}
 
-@media(max-width:600px){nav{margin:10px 16px 0;border-radius:16px;padding:8px 12px 8px 16px;}.nav-links{display:none;}.hamburger{display:flex;}.page{padding:20px 14px 60px;}
+@media(max-width:600px){
+  nav{margin:10px 16px 0;border-radius:16px;padding:8px 12px 8px 16px;}
+  .nav-links{display:none;}
+  .hamburger{display:flex;}
+  .page{padding:20px 14px 60px;}
   .main-swiper,
   .main-swiper .swiper-wrapper,
-  .main-swiper .swiper-slide,
-  .main-swiper .swiper-slide img,
-  .main-swiper .swiper-slide video{height:260px !important;}
+  .main-swiper .swiper-slide{height:260px !important;min-height:260px !important;}
 }
 </style>
 </head>
@@ -356,20 +376,25 @@ nav{position:sticky;top:12px;z-index:200;display:flex;align-items:center;justify
         <div class="swiper-wrapper">
 
           <?php
-          /* ── FIX 2: foreach with $i key ── */
           foreach($files as $i => $file):
             $file = trim($file);
             if(!$file) continue;
             $base_url2 = 'https://landlink.gt.tc/';
-            // DB mein 'uploads/filename' stored hai — basename() mat lagao
             if(strpos($file,'http')===0){
                 $url = $file;
             } elseif(strpos($file,'uploads/')===0){
-                $url = $base_url2.$file; // https://landlink.gt.tc/uploads/filename
+                $url = $base_url2.$file;
+            } elseif(strpos($file,'uploads\\')===0){
+                $url = $base_url2.str_replace('\\','/',$file);
             } else {
-                $url = $base_url2.'uploads/'.basename($file);
+                // sirf filename hai — uploads/ add karo
+                $url = $base_url2.'uploads/'.ltrim(basename($file),'/');
             }
+            // URL encode spaces etc but not slashes
+            $url = str_replace(' ','%20',$url);
             $ext = strtolower(pathinfo($url, PATHINFO_EXTENSION));
+            // query string hata ke extension lo
+            $ext = explode('?',$ext)[0];
             $is_video = in_array($ext, ['mp4','webm','ogg','mov']);
             $mime_map = ['mp4'=>'video/mp4','webm'=>'video/webm','ogg'=>'video/ogg','mov'=>'video/mp4'];
             $mime = $mime_map[$ext] ?? 'video/mp4';
@@ -390,6 +415,8 @@ nav{position:sticky;top:12px;z-index:200;display:flex;align-items:center;justify
             <?php else: ?>
               <img src="<?php echo htmlspecialchars($url); ?>"
                    alt="Room photo <?php echo $i+1; ?>"
+                   loading="eager"
+                   decoding="sync"
                    style="width:100%;height:100%;object-fit:cover;display:block;">
             <?php endif; ?>
 
@@ -593,16 +620,31 @@ nav{position:sticky;top:12px;z-index:200;display:flex;align-items:center;justify
 // loop:false  →  videos ke saath reliable hai
 // slideTo()   →  loop:false ke saath use karo (slideToLoop nahi)
 // ─────────────────────────────────────────────
+// Images force-load — blank slide fix
+document.querySelectorAll('#mainSwiper .swiper-slide img').forEach(img => {
+  if (!img.complete) {
+    img.addEventListener('load', () => {
+      if (typeof mainSwiper !== 'undefined') mainSwiper.update();
+    });
+  }
+});
+
 const mainSwiper = new Swiper('#mainSwiper', {
   loop: false,
   speed: 400,
+  observer: true,
+  observeParents: true,
+  updateOnImagesReady: true,
   pagination: { el: '.swiper-pagination', clickable: true },
   navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
   on: {
+    init(swiper) {
+      setTimeout(() => swiper.update(), 150);
+    },
     slideChange(swiper) {
       updateThumbs(swiper.activeIndex);
-      pauseAllVideos();         // slide change hote hi sab videos pause
-      loadVideoOnSlide(swiper.activeIndex); // nayi slide ka video load karo
+      pauseAllVideos();
+      loadVideoOnSlide(swiper.activeIndex);
     }
   }
 });
